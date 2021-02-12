@@ -14,7 +14,11 @@ To-Do:
 - [ ] Write a blog post about the development experience  
 - [ ] Add Renovate bot  
 - [ ] Review dependenices in `go.mod` because of IDE installs and the `// indirect` comments  
+- [ ] Add Sentry DSN  
 
 Ideas:  
 - [ ] Add support for additional users  
     - [ ] Admin users to manage other users, files, account status, etc  
+- [ ] Customize embed (colors, filename, etc)  
+- [ ] (Re)-Generate access token for API usage (ex. ShareX)  
+- [ ] Garbage collection  
