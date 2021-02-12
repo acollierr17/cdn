@@ -1,4 +1,4 @@
-module acollier.dev/cdn
+module github.com/acollierr17/cdn
 
 go 1.15
 
