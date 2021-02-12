@@ -1,4 +1,4 @@
-# cdn.acollier.dev
+# cdn
 My personal image proxy using DigitalOcean Spaces and Go w/ Mux.
 
 To-Do:  
