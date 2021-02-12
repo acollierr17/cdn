@@ -12,7 +12,8 @@ To-Do:
         - [ ] Delete  
     - [ ] Add ShareX capabilities for adding new images to s3 (handled via authentication)  
 - [ ] Write a blog post about the development experience  
-- [ ] Add Renovate bot
+- [ ] Add Renovate bot  
+- [ ] Review dependenices in `go.mod` because of IDE installs and the `// indirect` comments  
 
 Ideas:  
 - [ ] Add support for additional users  
