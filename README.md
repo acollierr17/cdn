@@ -10,7 +10,7 @@ To-Do:
     - [ ] Add routes to add and delete images to s3 (handled via authentication)  
         - [x] Upload  
         - [ ] Delete  
-    - [ ] Add ShareX capabilities for adding new images to s3 (handled via authentication)  
+    - [x] Add ShareX capabilities for adding new images to s3 (handled via authentication)  
 - [ ] Write a blog post about the development experience  
 - [ ] Add Renovate bot  
 - [ ] Review dependenices in `go.mod` because of IDE installs and the `// indirect` comments  
