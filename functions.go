@@ -37,10 +37,17 @@ func errorHandler(w http.ResponseWriter, _ *http.Request, statusCode int, err st
 
 func handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
-	myRouter.HandleFunc("/{id}", getImageRoute).Methods("GET")
-	myRouter.HandleFunc("/oembed/{id}", getOGEmbedRoute).Methods("GET")
-	myRouter.HandleFunc("/upload", uploadImageRoute).Methods("POST")
-	myRouter.HandleFunc("/", homePageRoute).Methods("GET")
+	authRouter := myRouter.PathPrefix("/images/").Subrouter()
+	authRouter.Use(accessTokenMiddleware)
+
+	myRouter.HandleFunc("/{id}", getImageRoute).Methods(http.MethodGet)
+	myRouter.HandleFunc("/oembed/{id}", getOGEmbedRoute).Methods(http.MethodGet)
+	myRouter.HandleFunc("/", homePageRoute).Methods(http.MethodGet)
+
+	authRouter.HandleFunc("/upload", uploadImageRoute).Methods(http.MethodPost)
+	authRouter.HandleFunc("/delete/{id}", deleteImageRoute).Methods(http.MethodDelete)
+	authRouter.HandleFunc("/", homePageRoute).Methods(http.MethodGet)
+
 	log.Fatal(http.ListenAndServe(":3000", myRouter))
 }
 
@@ -74,11 +81,6 @@ func uploadFileToS3(s *session.Session, file multipart.File, fileHeader *multipa
 	rand.Seed(time.Now().UnixNano())
 	tempFileName := randSeq(7) + filepath.Ext(fileHeader.Filename)
 
-	s, err = session.NewSession(s3Config)
-	if err != nil {
-		return "", err
-	}
-
 	object := s3.PutObjectInput{
 		Bucket:               aws.String(cdnConfig.SpacesConfig.SpacesName),
 		Key:                  aws.String(tempFileName),
@@ -95,6 +97,20 @@ func uploadFileToS3(s *session.Session, file multipart.File, fileHeader *multipa
 	}
 
 	return tempFileName, err
+}
+
+func deleteFileFromS3(s *session.Session, key string) (bool, error) {
+	object := &s3.DeleteObjectInput{
+		Bucket: aws.String(cdnConfig.SpacesConfig.SpacesName),
+		Key:    aws.String(key),
+	}
+
+	_, err := s3.New(s).DeleteObject(object)
+	if err != nil {
+		return false, err
+	}
+
+	return true, err
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

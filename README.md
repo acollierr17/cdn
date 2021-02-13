@@ -9,7 +9,7 @@ To-Do:
 - [ ] Add dashboard with authentication to view, delete and search/filter images  
     - [ ] Add routes to add and delete images to s3 (handled via authentication)  
         - [x] Upload  
-        - [ ] Delete  
+        - [x] Delete  
     - [x] Add ShareX capabilities for adding new images to s3 (handled via authentication)  
 - [ ] Write a blog post about the development experience  
 - [ ] Add Renovate bot  

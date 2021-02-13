@@ -120,16 +120,6 @@ func getOGEmbedRoute(w http.ResponseWriter, r *http.Request) {
 func uploadImageRoute(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Endpoint Hit: uploadImage")
 
-	if r.Header.Get("Access-Token") == "" {
-		errorHandler(w, r, http.StatusUnauthorized, "Invalid access token provided!")
-		return
-	}
-
-	if r.Header.Get("Access-Token") != cdnConfig.AccessToken {
-		errorHandler(w, r, http.StatusUnauthorized, "Invalid access token provided!")
-		return
-	}
-
 	file, fileHeader, err := r.FormFile("image")
 	if err != nil {
 		errorHandler(w, r, http.StatusUnprocessableEntity, "Could not get the uploaded file!")
@@ -153,6 +143,53 @@ func uploadImageRoute(w http.ResponseWriter, r *http.Request) {
 	jsonObj := ImageResponse{
 		Url:     fmt.Sprintf("%v/%v", cdnConfig.CdnEndpoint, fileName),
 		Success: true,
+	}
+	b, jsonErr := json.Marshal(jsonObj)
+	if jsonErr != nil {
+		errorHandler(w, r, http.StatusInternalServerError, jsonErr.Error())
+		return
+	}
+
+	_, writeErr := w.Write(b)
+	if writeErr != nil {
+		errorHandler(w, r, http.StatusInternalServerError, writeErr.Error())
+		return
+	}
+}
+
+func deleteImageRoute(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	key := vars["id"]
+
+	fmt.Println("Endpoint Hit: deleteImage")
+
+	imageURL := fmt.Sprintf("%s/%s", cdnConfig.SpacesConfig.SpacesUrl, key)
+	res, err := http.Get(imageURL)
+	if err != nil {
+		errorHandler(w, r, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		errorHandler(w, r, res.StatusCode, "An error occurred redirecting to the image.")
+		return
+	}
+
+	s, sessionErr := session.NewSession(s3Config)
+	if sessionErr != nil {
+		errorHandler(w, r, http.StatusInternalServerError, sessionErr.Error())
+		return
+	}
+
+	fileDeleted, s3DeleteErr := deleteFileFromS3(s, key)
+	if s3DeleteErr != nil {
+		errorHandler(w, r, http.StatusInternalServerError, s3DeleteErr.Error())
+		return
+	}
+
+	jsonObj := ImageDeletedRespone{
+		ImageName: key,
+		Deleted:   fileDeleted,
 	}
 	b, jsonErr := json.Marshal(jsonObj)
 	if jsonErr != nil {

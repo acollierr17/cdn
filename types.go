@@ -11,6 +11,11 @@ type ImageResponse struct {
 	Success bool   `json:"success"`
 }
 
+type ImageDeletedRespone struct {
+	ImageName string `json:"image_name"`
+	Deleted   bool   `json:"deleted"`
+}
+
 type SpacesConfig struct {
 	SpacesAccessKey string
 	SpacesSecretKey string
