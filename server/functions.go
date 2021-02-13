@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -35,10 +36,37 @@ func errorHandler(w http.ResponseWriter, _ *http.Request, statusCode int, err st
 	}
 }
 
+func (h SPAHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path, pathErr := filepath.Abs(r.URL.Path)
+	if pathErr != nil {
+		errorHandler(w, r, http.StatusBadRequest, pathErr.Error())
+		return
+	}
+
+	path = filepath.Join(h.StaticPath, r.URL.Path)
+
+	_, statErr := os.Stat(path)
+	if os.IsNotExist(statErr) {
+		http.ServeFile(w, r, filepath.Join(h.StaticPath, h.IndexPath))
+		return
+	} else if statErr != nil {
+		errorHandler(w, r, http.StatusInternalServerError, statErr.Error())
+		return
+	}
+
+	http.FileServer(http.Dir(h.StaticPath)).ServeHTTP(w, r)
+}
+
 func handleRequests() {
-	myRouter := mux.NewRouter().StrictSlash(true)
-	authRouter := myRouter.PathPrefix("/images/").Subrouter()
+	myRouter := mux.NewRouter().StrictSlash(false)
+	authRouter := myRouter.PathPrefix("/images").Subrouter()
 	authRouter.Use(accessTokenMiddleware)
+
+	spa := SPAHandler{
+		StaticPath: "./dist",
+		IndexPath:  "index.html",
+	}
+	myRouter.PathPrefix("/admin").Handler(http.StripPrefix("/admin", spa))
 
 	myRouter.HandleFunc("/{id}", getImageRoute).Methods(http.MethodGet)
 	myRouter.HandleFunc("/oembed/{id}", getOGEmbedRoute).Methods(http.MethodGet)

@@ -30,3 +30,8 @@ type Config struct {
 	CdnEndpoint  string
 	AccessToken  string
 }
+
+type SPAHandler struct {
+	StaticPath string
+	IndexPath  string
+}
