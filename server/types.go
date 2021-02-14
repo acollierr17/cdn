@@ -31,7 +31,7 @@ type Config struct {
 	AccessToken  string
 }
 
-type SPAHandler struct {
-	StaticPath string
-	IndexPath  string
+type ErrorResponse struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
 }

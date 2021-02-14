@@ -4,19 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-func homePageRoute(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://acollier.dev", http.StatusPermanentRedirect)
+func homePageRoute(ctx *fiber.Ctx) {
+	ctx.Redirect("https://acollier.dev", fiber.StatusMovedPermanently)
 }
 
-func getImageRoute(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["id"]
+func getImageRoute(ctx *fiber.Ctx) {
+	key := ctx.Params("id")
 
 	fmt.Println("Endpoint Hit: getImage")
 
@@ -24,41 +23,36 @@ func getImageRoute(w http.ResponseWriter, r *http.Request) {
 	oembedURL := fmt.Sprintf("%s/oembed/%s", cdnConfig.CdnEndpoint, key)
 	res, err := http.Head(imageURL)
 	if err != nil {
-		errorHandler(w, r, http.StatusInternalServerError, err.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		errorHandler(w, r, res.StatusCode, "An error occurred redirecting to the image.")
+		errorHandler(ctx, res.StatusCode, "An error occurred redirecting to the image.")
 		return
 	}
 
-	if r.Header.Get("User-Agent") == "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)" {
-		_, fmtErr := fmt.Fprintf(
-			w,
+	if ctx.Get("User-Agent") == "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)" {
+		ctx.Type("html")
+		ctx.Send(fmt.Sprintf(
 			`<!DOCTYPE html>
-					<html>
-						<head>
-							<meta name="theme-color" content="#dd9323">
-							<meta property="og:title" content="%v">
-							<meta content="%s" property="og:image">
-							<link type="application/json+oembed" href="%s" />
-						</head>
-					</html>
-				`,
-			key, imageURL, oembedURL)
-		if fmtErr != nil {
-			errorHandler(w, r, http.StatusInternalServerError, fmtErr.Error())
-			return
-		}
+			<html>
+				<head>
+					<meta name="theme-color" content="#dd9323">
+					<meta property="og:title" content="%v">
+					<meta content="%v" property="og:image">
+					<link type="application/json+oembed" href="%v" />
+				</head>
+			</html>`,
+			key, imageURL, oembedURL),
+		)
 	} else {
-		http.Redirect(w, r, imageURL, http.StatusMovedPermanently)
+		ctx.Redirect(imageURL, fiber.StatusMovedPermanently)
 	}
 }
 
-func getOGEmbedRoute(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["id"]
+func getOGEmbedRoute(ctx *fiber.Ctx) {
+	key := ctx.Params("id")
 
 	fmt.Println("Endpoint Hit: getOGEmbed")
 
@@ -66,21 +60,22 @@ func getOGEmbedRoute(w http.ResponseWriter, r *http.Request) {
 
 	res, headErr := http.Head(imageURL)
 	if headErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, headErr.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, headErr.Error())
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		errorHandler(w, r, res.StatusCode, "An error occurred redirecting to the image.")
+		errorHandler(ctx, res.StatusCode, "An error occurred redirecting to the image.")
 		return
 	}
 
-	if r.Header.Get("User-Agent") == "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)" {
+	if ctx.Get("User-Agent") == "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)" {
+		ctx.Type("json", "utf-8")
 		contentLengthHeader := res.Header.Values("content-length")[0]
 		contentTypeHeader := res.Header.Values("content-type")[0]
 		contentLength, parseErr := strconv.ParseInt(contentLengthHeader, 0, 64)
 		if parseErr != nil {
-			errorHandler(w, r, http.StatusInternalServerError, parseErr.Error())
+			errorHandler(ctx, fiber.StatusInternalServerError, parseErr.Error())
 			return
 		}
 
@@ -103,40 +98,34 @@ func getOGEmbedRoute(w http.ResponseWriter, r *http.Request) {
 		}
 		b, jsonErr := json.Marshal(jsonObj)
 		if jsonErr != nil {
-			errorHandler(w, r, http.StatusInternalServerError, jsonErr.Error())
+			errorHandler(ctx, fiber.StatusInternalServerError, jsonErr.Error())
 			return
 		}
 
-		_, writeErr := w.Write(b)
-		if writeErr != nil {
-			errorHandler(w, r, http.StatusInternalServerError, writeErr.Error())
-			return
-		}
+		ctx.SendBytes(b)
 	} else {
-		http.Redirect(w, r, imageURL, http.StatusMovedPermanently)
+		ctx.Redirect(imageURL, fiber.StatusMovedPermanently)
 	}
 }
 
-func uploadImageRoute(w http.ResponseWriter, r *http.Request) {
+func uploadImageRoute(ctx *fiber.Ctx) {
 	fmt.Println("Endpoint Hit: uploadImage")
 
-	file, fileHeader, err := r.FormFile("image")
+	fileHeader, err := ctx.FormFile("image")
 	if err != nil {
-		errorHandler(w, r, http.StatusUnprocessableEntity, "Could not get the uploaded file!")
+		errorHandler(ctx, fiber.StatusUnprocessableEntity, "Could not get the uploaded file!")
 		return
 	}
-
-	defer file.Close()
 
 	s, sessionErr := session.NewSession(s3Config)
 	if sessionErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, sessionErr.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, sessionErr.Error())
 		return
 	}
 
-	fileName, s3UploadErr := uploadFileToS3(s, file, fileHeader)
+	fileName, s3UploadErr := uploadFileToS3(s, fileHeader)
 	if s3UploadErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, s3UploadErr.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, s3UploadErr.Error())
 		return
 	}
 
@@ -146,44 +135,39 @@ func uploadImageRoute(w http.ResponseWriter, r *http.Request) {
 	}
 	b, jsonErr := json.Marshal(jsonObj)
 	if jsonErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, jsonErr.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, jsonErr.Error())
 		return
 	}
 
-	_, writeErr := w.Write(b)
-	if writeErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, writeErr.Error())
-		return
-	}
+	ctx.Write(b)
 }
 
-func deleteImageRoute(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["id"]
+func deleteImageRoute(ctx *fiber.Ctx) {
+	key := ctx.Params("id")
 
 	fmt.Println("Endpoint Hit: deleteImage")
 
 	imageURL := fmt.Sprintf("%s/%s", cdnConfig.SpacesConfig.SpacesUrl, key)
 	res, err := http.Get(imageURL)
 	if err != nil {
-		errorHandler(w, r, http.StatusInternalServerError, err.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		errorHandler(w, r, res.StatusCode, "An error occurred redirecting to the image.")
+		errorHandler(ctx, res.StatusCode, "An error occurred redirecting to the image.")
 		return
 	}
 
 	s, sessionErr := session.NewSession(s3Config)
 	if sessionErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, sessionErr.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, sessionErr.Error())
 		return
 	}
 
 	fileDeleted, s3DeleteErr := deleteFileFromS3(s, key)
 	if s3DeleteErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, s3DeleteErr.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, s3DeleteErr.Error())
 		return
 	}
 
@@ -193,13 +177,9 @@ func deleteImageRoute(w http.ResponseWriter, r *http.Request) {
 	}
 	b, jsonErr := json.Marshal(jsonObj)
 	if jsonErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, jsonErr.Error())
+		errorHandler(ctx, fiber.StatusInternalServerError, jsonErr.Error())
 		return
 	}
 
-	_, writeErr := w.Write(b)
-	if writeErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, writeErr.Error())
-		return
-	}
+	ctx.Write(b)
 }

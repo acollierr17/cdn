@@ -6,23 +6,22 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber"
 	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
-func errorHandler(w http.ResponseWriter, _ *http.Request, statusCode int, err string) {
-	w.WriteHeader(statusCode)
+func errorHandler(ctx *fiber.Ctx, statusCode int, message string) {
+	err := fiber.NewError(statusCode, message)
 
-	jsonObj := ImageResponse{
-		Url:     fmt.Sprintf("An error occurred: %v", err),
-		Success: false,
+	jsonObj := ErrorResponse{
+		Message:    err.Message,
+		StatusCode: err.Code,
 	}
 
 	b, jsonError := json.Marshal(jsonObj)
@@ -30,53 +29,31 @@ func errorHandler(w http.ResponseWriter, _ *http.Request, statusCode int, err st
 		log.Fatal(jsonError)
 	}
 
-	_, writeError := w.Write(b)
-	if writeError != nil {
-		log.Fatal(jsonError)
-	}
-}
-
-func (h SPAHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path, pathErr := filepath.Abs(r.URL.Path)
-	if pathErr != nil {
-		errorHandler(w, r, http.StatusBadRequest, pathErr.Error())
-		return
-	}
-
-	path = filepath.Join(h.StaticPath, r.URL.Path)
-
-	_, statErr := os.Stat(path)
-	if os.IsNotExist(statErr) {
-		http.ServeFile(w, r, filepath.Join(h.StaticPath, h.IndexPath))
-		return
-	} else if statErr != nil {
-		errorHandler(w, r, http.StatusInternalServerError, statErr.Error())
-		return
-	}
-
-	http.FileServer(http.Dir(h.StaticPath)).ServeHTTP(w, r)
+	ctx.Write(b)
 }
 
 func handleRequests() {
-	myRouter := mux.NewRouter().StrictSlash(false)
-	authRouter := myRouter.PathPrefix("/images").Subrouter()
-	authRouter.Use(accessTokenMiddleware)
+	app := fiber.New()
 
-	spa := SPAHandler{
-		StaticPath: "./dist",
-		IndexPath:  "index.html",
-	}
-	myRouter.PathPrefix("/admin").Handler(http.StripPrefix("/admin", spa))
+	app.Static("/admin", "dist")
 
-	myRouter.HandleFunc("/{id}", getImageRoute).Methods(http.MethodGet)
-	myRouter.HandleFunc("/oembed/{id}", getOGEmbedRoute).Methods(http.MethodGet)
-	myRouter.HandleFunc("/", homePageRoute).Methods(http.MethodGet)
+	api := app.Group("/api").Use(accessTokenMiddleware)
+	api.Post("/upload", uploadImageRoute)
+	api.Delete("/delete/:id", deleteImageRoute)
 
-	authRouter.HandleFunc("/upload", uploadImageRoute).Methods(http.MethodPost)
-	authRouter.HandleFunc("/delete/{id}", deleteImageRoute).Methods(http.MethodDelete)
-	authRouter.HandleFunc("/", homePageRoute).Methods(http.MethodGet)
+	app.Get("/:id", getImageRoute)
+	app.Get("/oembed/:id", getOGEmbedRoute)
+	app.Get("/", homePageRoute)
 
-	log.Fatal(http.ListenAndServe(":3000", myRouter))
+	admin := app.Group("/admin")
+	admin.Get("/admin/*", func(ctx *fiber.Ctx) {
+		err := ctx.SendFile("./dist/index.html")
+		if err != nil {
+			errorHandler(ctx, fiber.StatusUnprocessableEntity, err.Error())
+		}
+	})
+
+	log.Fatal(app.Listen(":3000"))
 }
 
 func roundFloat64(num float64) string {
@@ -98,13 +75,19 @@ func getFileSize(size int64) string {
 	}
 }
 
-func uploadFileToS3(s *session.Session, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
+func uploadFileToS3(s *session.Session, fileHeader *multipart.FileHeader) (string, error) {
 	size := fileHeader.Size
 	buffer := make([]byte, size)
-	_, err := file.Read(buffer)
-	if err != nil {
-		return "", err
+	file, headerOpenErr := fileHeader.Open()
+	if headerOpenErr != nil {
+		return "", headerOpenErr
 	}
+	_, fileReadErr := file.Read(buffer)
+	if fileReadErr != nil {
+		return "", fileReadErr
+	}
+
+	file.Close()
 
 	rand.Seed(time.Now().UnixNano())
 	tempFileName := randSeq(7) + filepath.Ext(fileHeader.Filename)
@@ -119,12 +102,12 @@ func uploadFileToS3(s *session.Session, file multipart.File, fileHeader *multipa
 		ServerSideEncryption: aws.String("AES256"),
 	}
 
-	_, err = s3.New(s).PutObject(&object)
-	if err != nil {
-		return "", err
+	_, putObjErr := s3.New(s).PutObject(&object)
+	if putObjErr != nil {
+		return "", putObjErr
 	}
 
-	return tempFileName, err
+	return tempFileName, nil
 }
 
 func deleteFileFromS3(s *session.Session, key string) (bool, error) {
