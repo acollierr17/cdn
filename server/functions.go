@@ -6,7 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"log"
 	"math/rand"
 	"mime/multipart"
@@ -16,7 +17,7 @@ import (
 	"time"
 )
 
-func errorHandler(ctx *fiber.Ctx, statusCode int, message string) {
+func errorHandler(ctx *fiber.Ctx, statusCode int, message string) (int, error) {
 	err := fiber.NewError(statusCode, message)
 
 	jsonObj := ErrorResponse{
@@ -29,28 +30,31 @@ func errorHandler(ctx *fiber.Ctx, statusCode int, message string) {
 		log.Fatal(jsonError)
 	}
 
-	ctx.Write(b)
+	return ctx.Write(b)
 }
 
 func handleRequests() {
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:8080, https://acollier.dev, https://cdn.acollier.dev, https://acolliercdn.ngrok.io",
+		AllowHeaders: "Origin, Content-Type, Accept, Access-Token, User-Agent",
+	}))
 
 	app.Static("/admin", "dist")
 
 	api := app.Group("/api").Use(accessTokenMiddleware)
 	api.Post("/upload", uploadImageRoute)
 	api.Delete("/delete/:id", deleteImageRoute)
+	api.Post("/token", generateAccessTokenRoute)
 
 	app.Get("/:id", getImageRoute)
 	app.Get("/oembed/:id", getOGEmbedRoute)
 	app.Get("/", homePageRoute)
 
 	admin := app.Group("/admin")
-	admin.Get("/admin/*", func(ctx *fiber.Ctx) {
-		err := ctx.SendFile("./dist/index.html")
-		if err != nil {
-			errorHandler(ctx, fiber.StatusUnprocessableEntity, err.Error())
-		}
+	admin.Get("/admin/*", func(ctx *fiber.Ctx) error {
+		return ctx.SendFile("./dist/index.html")
 	})
 
 	log.Fatal(app.Listen(":3000"))
@@ -132,4 +136,10 @@ func randSeq(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func generateToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }
