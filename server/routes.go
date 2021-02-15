@@ -1,20 +1,21 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-func homePageRoute(ctx *fiber.Ctx) {
-	ctx.Redirect("https://acollier.dev", fiber.StatusMovedPermanently)
+func homePageRoute(ctx *fiber.Ctx) error {
+	return ctx.Redirect("https://acollier.dev", fiber.StatusMovedPermanently)
 }
 
-func getImageRoute(ctx *fiber.Ctx) {
+func getImageRoute(ctx *fiber.Ctx) error {
 	key := ctx.Params("id")
 
 	fmt.Println("Endpoint Hit: getImage")
@@ -23,18 +24,16 @@ func getImageRoute(ctx *fiber.Ctx) {
 	oembedURL := fmt.Sprintf("%s/oembed/%s", cdnConfig.CdnEndpoint, key)
 	res, err := http.Head(imageURL)
 	if err != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, err.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	if res.StatusCode != http.StatusOK {
-		errorHandler(ctx, res.StatusCode, "An error occurred redirecting to the image.")
-		return
+		return fiber.NewError(res.StatusCode, "An error occurred redirecting to the image")
 	}
 
 	if ctx.Get("User-Agent") == "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)" {
 		ctx.Type("html")
-		ctx.Send(fmt.Sprintf(
+		return ctx.Send([]byte(fmt.Sprintf(
 			`<!DOCTYPE html>
 			<html>
 				<head>
@@ -44,14 +43,14 @@ func getImageRoute(ctx *fiber.Ctx) {
 					<link type="application/json+oembed" href="%v" />
 				</head>
 			</html>`,
-			key, imageURL, oembedURL),
+			key, imageURL, oembedURL)),
 		)
 	} else {
-		ctx.Redirect(imageURL, fiber.StatusMovedPermanently)
+		return ctx.Redirect(imageURL, fiber.StatusMovedPermanently)
 	}
 }
 
-func getOGEmbedRoute(ctx *fiber.Ctx) {
+func getOGEmbedRoute(ctx *fiber.Ctx) error {
 	key := ctx.Params("id")
 
 	fmt.Println("Endpoint Hit: getOGEmbed")
@@ -60,13 +59,11 @@ func getOGEmbedRoute(ctx *fiber.Ctx) {
 
 	res, headErr := http.Head(imageURL)
 	if headErr != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, headErr.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, headErr.Error())
 	}
 
 	if res.StatusCode != http.StatusOK {
-		errorHandler(ctx, res.StatusCode, "An error occurred redirecting to the image.")
-		return
+		return fiber.NewError(res.StatusCode, "An error occurred redirecting to the image.")
 	}
 
 	if ctx.Get("User-Agent") == "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)" {
@@ -75,8 +72,7 @@ func getOGEmbedRoute(ctx *fiber.Ctx) {
 		contentTypeHeader := res.Header.Values("content-type")[0]
 		contentLength, parseErr := strconv.ParseInt(contentLengthHeader, 0, 64)
 		if parseErr != nil {
-			errorHandler(ctx, fiber.StatusInternalServerError, parseErr.Error())
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, parseErr.Error())
 		}
 
 		var objType string
@@ -98,35 +94,31 @@ func getOGEmbedRoute(ctx *fiber.Ctx) {
 		}
 		b, jsonErr := json.Marshal(jsonObj)
 		if jsonErr != nil {
-			errorHandler(ctx, fiber.StatusInternalServerError, jsonErr.Error())
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, jsonErr.Error())
 		}
 
-		ctx.SendBytes(b)
+		return ctx.Send(b)
 	} else {
-		ctx.Redirect(imageURL, fiber.StatusMovedPermanently)
+		return ctx.Redirect(imageURL, fiber.StatusMovedPermanently)
 	}
 }
 
-func uploadImageRoute(ctx *fiber.Ctx) {
+func uploadImageRoute(ctx *fiber.Ctx) error {
 	fmt.Println("Endpoint Hit: uploadImage")
 
 	fileHeader, err := ctx.FormFile("image")
 	if err != nil {
-		errorHandler(ctx, fiber.StatusUnprocessableEntity, "Could not get the uploaded file!")
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not get the uploaded file!")
 	}
 
 	s, sessionErr := session.NewSession(s3Config)
 	if sessionErr != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, sessionErr.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, sessionErr.Error())
 	}
 
 	fileName, s3UploadErr := uploadFileToS3(s, fileHeader)
 	if s3UploadErr != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, s3UploadErr.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, s3UploadErr.Error())
 	}
 
 	jsonObj := ImageResponse{
@@ -135,14 +127,13 @@ func uploadImageRoute(ctx *fiber.Ctx) {
 	}
 	b, jsonErr := json.Marshal(jsonObj)
 	if jsonErr != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, jsonErr.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, jsonErr.Error())
 	}
 
-	ctx.Write(b)
+	return ctx.Send(b)
 }
 
-func deleteImageRoute(ctx *fiber.Ctx) {
+func deleteImageRoute(ctx *fiber.Ctx) error {
 	key := ctx.Params("id")
 
 	fmt.Println("Endpoint Hit: deleteImage")
@@ -150,25 +141,21 @@ func deleteImageRoute(ctx *fiber.Ctx) {
 	imageURL := fmt.Sprintf("%s/%s", cdnConfig.SpacesConfig.SpacesUrl, key)
 	res, err := http.Get(imageURL)
 	if err != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, err.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	if res.StatusCode != http.StatusOK {
-		errorHandler(ctx, res.StatusCode, "An error occurred redirecting to the image.")
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "An error occurred redirecting to the image.")
 	}
 
 	s, sessionErr := session.NewSession(s3Config)
 	if sessionErr != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, sessionErr.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, sessionErr.Error())
 	}
 
 	fileDeleted, s3DeleteErr := deleteFileFromS3(s, key)
 	if s3DeleteErr != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, s3DeleteErr.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, s3DeleteErr.Error())
 	}
 
 	jsonObj := ImageDeletedRespone{
@@ -177,9 +164,43 @@ func deleteImageRoute(ctx *fiber.Ctx) {
 	}
 	b, jsonErr := json.Marshal(jsonObj)
 	if jsonErr != nil {
-		errorHandler(ctx, fiber.StatusInternalServerError, jsonErr.Error())
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, jsonErr.Error())
 	}
 
-	ctx.Write(b)
+	return ctx.Send(b)
+}
+
+func generateAccessTokenRoute(ctx *fiber.Ctx) error {
+	t := new(AuthTokenRequest)
+
+	fmt.Println("Endpoint Hit: token")
+
+	if err := ctx.BodyParser(t); err != nil {
+		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
+	}
+
+	token := t.Token
+	firebaseCtx := context.Background()
+
+	verified, verifiedErr := firebaseAuth.VerifyIDToken(firebaseCtx, token)
+	if verifiedErr != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, verifiedErr.Error())
+	}
+
+	verifiedUID := verified.UID
+	accessToken := generateToken()
+	fmt.Printf("Verified UID: %v", verifiedUID)
+	fmt.Printf("Token: %v", accessToken)
+
+	_, updateErr := firebaseFirestore.Collection("tokens").Doc(verifiedUID).Set(firebaseCtx, map[string]interface{}{
+		"uid": verifiedUID,
+		"token": accessToken,
+	})
+	if updateErr != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, updateErr.Error())
+	}
+
+	return ctx.JSON(fiber.Map{
+		"token": accessToken,
+	})
 }

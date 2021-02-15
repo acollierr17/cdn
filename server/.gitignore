@@ -22,3 +22,6 @@
 
 # Build files
 dist/
+
+# Firebase Admin SDK
+service-account.json
