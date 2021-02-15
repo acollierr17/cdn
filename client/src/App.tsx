@@ -6,6 +6,7 @@ import Login from './containers/Login';
 import NotFound from './components/NotFound';
 import PrivateRoute from './components/PrivateRouter';
 import { AuthProvider } from './contexts/AuthProvider';
+import Profile from './containers/Profile';
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
         </Helmet>
         <Switch>
           <PrivateRoute exact path="/" component={Dashboard} />
+          <PrivateRoute path="/profile" component={Profile} />
           <Route path="/login" component={Login} />
           <Route component={NotFound} />
         </Switch>

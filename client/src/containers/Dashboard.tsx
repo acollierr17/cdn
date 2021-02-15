@@ -1,21 +1,27 @@
 import React from 'react';
-import { Box, Button, Container, Text } from '@chakra-ui/react';
+import {
+  Button,
+  HStack,
+  LinkOverlay,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  Heading,
+} from '@chakra-ui/react';
 import { Helmet } from 'react-helmet';
-import { useHistory } from 'react-router-dom';
+import { useHistory, Link as RouterLink } from 'react-router-dom';
+import { GoSignOut, GoGear } from 'react-icons/go';
 import Card from '../components/Card';
-import firebase from '../firebase';
+import ContainerCentered from '../components/ContainerCentered';
 import { useAuth } from '../contexts/AuthProvider';
 
 export default function Dashboard() {
+  const auth = useAuth();
   const history = useHistory();
-  const { user: currentUser } = useAuth();
-  const handleClick = (event: any) => {
-    event.preventDefault();
-
-    firebase
-      .auth()
-      .signOut()
-      .then(() => history.push('/login'));
+  const handleClick = () => {
+    auth.logout!(history).catch((error) => {
+      console.log(error.message);
+    });
   };
 
   return (
@@ -24,26 +30,34 @@ export default function Dashboard() {
         <title>Dashboard</title>
         <meta property="og:title" content="Dashboard" />
       </Helmet>
-      <Container
-        pos="fixed"
-        top="50%"
-        left="50%"
-        transform="translate(-50%, -50%)"
-      >
+      <ContainerCentered>
+        <Breadcrumb>
+          <BreadcrumbItem as={Heading} pb={4} isCurrentPage>
+            <BreadcrumbLink as={RouterLink} to="/">
+              Dashboard
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        </Breadcrumb>
+
         <Card
           url="https://acolliercdn.ngrok.io/ABMrLUe.png"
           name="ABMrLUe.png"
         />
-
-        <Box>
-          <Text>
-            <strong>Email:</strong> {currentUser?.email ?? 'N/A'}
-          </Text>
-          <Button colorScheme="orange" mt="4" onClick={handleClick}>
+        <HStack spacing={4} mt="4">
+          <Button
+            leftIcon={<GoSignOut />}
+            colorScheme="orange"
+            onClick={handleClick}
+          >
             Sign Out
           </Button>
-        </Box>
-      </Container>
+          <Button leftIcon={<GoGear />} colorScheme="blue">
+            <LinkOverlay as={RouterLink} to="/profile">
+              Profile
+            </LinkOverlay>
+          </Button>
+        </HStack>
+      </ContainerCentered>
     </>
   );
 }

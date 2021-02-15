@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
-import firebase from '../firebase';
+import React, { useEffect, useState } from 'react';
+import { Link as RouterLink, useHistory } from 'react-router-dom';
 import 'firebase/auth';
 import 'firebase/firestore';
 import {
-  Container,
   FormControl,
   FormLabel,
   Input,
@@ -12,14 +10,13 @@ import {
   Heading,
   Divider,
   Box,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
 } from '@chakra-ui/react';
 import { Helmet } from 'react-helmet';
-import { useAuth } from '../contexts/AuthProvider';
-
-interface UserData {
-  email: string;
-  password: string;
-}
+import { useAuth, UserData } from '../contexts/AuthProvider';
+import ContainerCentered from '../components/ContainerCentered';
 
 export default function Login() {
   const auth = useAuth();
@@ -28,6 +25,10 @@ export default function Login() {
     email: '',
     password: '',
   });
+
+  useEffect(() => {
+    if (auth.authenticated) history.push('/');
+  }, []);
 
   const handleChange = (event: any) => {
     event.persist();
@@ -39,18 +40,10 @@ export default function Login() {
 
   const handleSubmit = (event: any) => {
     event.preventDefault();
-    console.log(import.meta.env);
 
-    firebase
-      .auth()
-      .signInWithEmailAndPassword(values.email, values.password)
-      .then((res) => {
-        auth.setUser(res);
-        history.push('/');
-      })
-      .catch((error) => {
-        console.log(error.message);
-      });
+    auth.login!(values, history).catch((error) => {
+      console.log(error.message);
+    });
   };
 
   return (
@@ -59,13 +52,14 @@ export default function Login() {
         <title>Login</title>
         <meta property="og:title" content="Login" />
       </Helmet>
-      <Container
-        pos="fixed"
-        top="50%"
-        left="50%"
-        transform="translate(-50%, -50%)"
-      >
-        <Heading pb="4">Log In</Heading>
+      <ContainerCentered>
+        <Breadcrumb>
+          <BreadcrumbItem as={Heading} pb={4} isCurrentPage>
+            <BreadcrumbLink as={RouterLink} to="/login">
+              Log In
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+        </Breadcrumb>
         <Divider />
         <Box pt="4">
           <form onSubmit={handleSubmit}>
@@ -96,7 +90,7 @@ export default function Login() {
             </Button>
           </form>
         </Box>
-      </Container>
+      </ContainerCentered>
     </>
   );
 }

@@ -1,11 +1,18 @@
 import React, { useContext, useEffect, useState } from 'react';
 import firebase from '../firebase';
 
+export type UserData = {
+  email: string;
+  password: string;
+};
+
 type ContextProps = {
   user: firebase.User | null;
   authenticated: boolean;
-  setUser: any;
+  setUser: React.Dispatch<React.SetStateAction<ContextProps['user']>>;
   loadingAuthState: boolean;
+  login(data: UserData, history: Record<string, any>): Promise<void>;
+  logout(history: Record<string, any>): Promise<void>;
 };
 
 const AuthContext = React.createContext<Partial<ContextProps>>({});
@@ -17,6 +24,21 @@ export const AuthProvider = ({ children }: any) => {
   const [loadingAuthState, setLoadingAuthState] = useState<
     ContextProps['loadingAuthState']
   >(true);
+
+  const login = (data: UserData, history: Record<string, any>) =>
+    firebase
+      .auth()
+      .signInWithEmailAndPassword(data.email, data.password)
+      .then((res) => {
+        setUser(res.user);
+        history.push('/');
+      });
+
+  const logout = (history: Record<string, any>) =>
+    firebase
+      .auth()
+      .signOut()
+      .then(() => history.push('/login'));
 
   useEffect(() => {
     firebase.auth().onAuthStateChanged((user: any) => {
@@ -32,6 +54,8 @@ export const AuthProvider = ({ children }: any) => {
         authenticated: user !== null,
         setUser,
         loadingAuthState,
+        login,
+        logout,
       }}
     >
       {!loadingAuthState && children}
