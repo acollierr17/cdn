@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
-import firebase from '../firebase';
+import firebase from 'firebase/app';
+import { auth } from '../firebase';
 
 export type UserData = {
   email: string;
@@ -26,22 +27,16 @@ export const AuthProvider = ({ children }: any) => {
   >(true);
 
   const login = (data: UserData, history: Record<string, any>) =>
-    firebase
-      .auth()
-      .signInWithEmailAndPassword(data.email, data.password)
-      .then((res) => {
-        setUser(res.user);
-        history.push('/');
-      });
+    auth.signInWithEmailAndPassword(data.email, data.password).then((res) => {
+      setUser(res.user);
+      history.push('/');
+    });
 
   const logout = (history: Record<string, any>) =>
-    firebase
-      .auth()
-      .signOut()
-      .then(() => history.push('/login'));
+    auth.signOut().then(() => history.push('/login'));
 
   useEffect(() => {
-    firebase.auth().onAuthStateChanged((user: any) => {
+    return firebase.auth().onAuthStateChanged((user: any) => {
       setUser(user);
       setLoadingAuthState(false);
     });

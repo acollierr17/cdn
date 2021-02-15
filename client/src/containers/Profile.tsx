@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import ContainerCentered from '../components/ContainerCentered';
 import {
@@ -20,14 +20,18 @@ import {
   useClipboard,
 } from '@chakra-ui/react';
 import { Link as RouterLink, useHistory } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthProvider';
 import { GoSignOut } from 'react-icons/go';
+import axios from 'axios';
+import { useAuth } from '../contexts/AuthProvider';
+import { useToken } from '../contexts/TokenContext';
 
 export default function Profile() {
   const auth = useAuth();
   const history = useHistory();
+
   const [showToken, setShowToken] = useState(false);
-  const [token] = useState('');
+  const tokenState = useToken(auth.user!.uid);
+  const [token, setToken] = useState(tokenState.token);
   const { hasCopied, onCopy } = useClipboard(token);
 
   const handleShowToken = () => setShowToken((show) => !show);
@@ -37,6 +41,20 @@ export default function Profile() {
       console.log(error.message);
     });
   };
+
+  const handleTokenGeneration = async () => {
+    try {
+      const apiURL = import.meta.env.SNOWPACK_PUBLIC_API_URL;
+      const token = await auth.user!.getIdToken(true);
+      await axios.post(`${apiURL}/token`, { token });
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+  useEffect(() => {
+    setToken(tokenState.token);
+  }, [tokenState]);
 
   return (
     <>
@@ -76,7 +94,6 @@ export default function Profile() {
                 type="email"
                 name="email"
                 value={auth.user!.email!}
-                isFullWidth={false}
                 isDisabled
               />
             </FormControl>
@@ -92,7 +109,7 @@ export default function Profile() {
                   isDisabled
                 />
                 <InputRightElement width="5rem" mr="126px">
-                  <Button h="1.75rem" size="sm">
+                  <Button h="1.75rem" size="sm" onClick={handleTokenGeneration}>
                     Reset
                   </Button>
                 </InputRightElement>
