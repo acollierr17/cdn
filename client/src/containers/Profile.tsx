@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Helmet } from 'react-helmet';
-import ContainerCentered from '../components/ContainerCentered';
 import {
   FormControl,
   FormLabel,
@@ -19,11 +18,12 @@ import {
   Spacer,
   useClipboard,
 } from '@chakra-ui/react';
+import ContainerCentered from '../components/ContainerCentered';
 import { Link as RouterLink, useHistory } from 'react-router-dom';
 import { GoSignOut } from 'react-icons/go';
-import axios from 'axios';
 import { useAuth } from '../contexts/AuthProvider';
 import { useToken } from '../contexts/TokenContext';
+import { generateToken } from '../api';
 
 export default function Profile() {
   const auth = useAuth();
@@ -33,8 +33,9 @@ export default function Profile() {
   const tokenState = useToken(auth.user!.uid);
   const [token, setToken] = useState(tokenState.token);
   const { hasCopied, onCopy } = useClipboard(token);
+  const tokenRef = useRef<any>();
 
-  const handleShowToken = () => setShowToken((show) => !show);
+  const toggleTokenVisibility = () => setShowToken((show) => !show);
 
   const handleClick = () => {
     auth.logout!(history).catch((error) => {
@@ -44,9 +45,7 @@ export default function Profile() {
 
   const handleTokenGeneration = async () => {
     try {
-      const apiURL = import.meta.env.SNOWPACK_PUBLIC_API_URL;
-      const token = await auth.user!.getIdToken(true);
-      await axios.post(`${apiURL}/token`, { token });
+      await generateToken(auth);
     } catch (error) {
       console.log(error.message);
     }
@@ -54,6 +53,7 @@ export default function Profile() {
 
   useEffect(() => {
     setToken(tokenState.token);
+    tokenRef.current.value = token;
   }, [tokenState]);
 
   return (
@@ -105,7 +105,7 @@ export default function Profile() {
                   as={Input}
                   pr="13.5rem"
                   type={showToken ? 'text' : 'password'}
-                  value={token}
+                  ref={tokenRef}
                   isDisabled
                 />
                 <InputRightElement width="5rem" mr="126px">
@@ -119,7 +119,7 @@ export default function Profile() {
                   </Button>
                 </InputRightElement>
                 <InputRightElement width="4.5rem">
-                  <Button h="1.75rem" size="sm" onClick={handleShowToken}>
+                  <Button h="1.75rem" size="sm" onClick={toggleTokenVisibility}>
                     {showToken ? 'Hide' : 'Show'}
                   </Button>
                 </InputRightElement>
