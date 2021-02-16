@@ -7,7 +7,7 @@ export type UserData = {
   password: string;
 };
 
-type ContextProps = {
+export type ContextProps = {
   user: firebase.User | null;
   authenticated: boolean;
   setUser: React.Dispatch<React.SetStateAction<ContextProps['user']>>;
