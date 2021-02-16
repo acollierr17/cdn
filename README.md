@@ -7,9 +7,11 @@ To-Do:
     - [ ] Give proper credits to @AlbertSPedersen -  [AlbertSPedersen/s3-discord-embedder](https://github.com/AlbertSPedersen/s3-discord-embedder)  
 - [ ] Implement caching from DigitalOcean  
 - [ ] Add dashboard with authentication to view, delete and search/filter images  
-    - [ ] Add routes to add and delete images to s3 (handled via authentication)  
+	- [x] Add authentication  
+	- [x] Add view for current images  
+    - [x] Add routes to add and delete images to s3 (handled via authentication)  
         - [x] Upload  
-        - [x] Delete  
+        - [x] Delete   
     - [x] Add ShareX capabilities for adding new images to s3 (handled via authentication)  
 - [ ] Write a blog post about the development experience  
 - [ ] Add Renovate bot  
@@ -20,5 +22,5 @@ Ideas:
 - [ ] Add support for additional users  
     - [ ] Admin users to manage other users, files, account status, etc  
 - [ ] Customize embed (colors, filename, etc)  
-- [ ] (Re)-Generate access token for API usage (ex. ShareX)  
+- [x] (Re)-Generate access token for API usage (ex. ShareX)  
 - [ ] Garbage collection  
