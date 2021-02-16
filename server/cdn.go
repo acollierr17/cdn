@@ -28,12 +28,13 @@ func init() {
 
 	cdnConfig = &Config{
 		SpacesConfig: SpacesConfig{
-			SpacesAccessKey: os.Getenv("SPACES_ACCESS_KEY"),
-			SpacesSecretKey: os.Getenv("SPACES_SECRET_KEY"),
-			SpacesEndpoint:  os.Getenv("SPACES_ENDPOINT"),
-			SpacesUrl:       os.Getenv("SPACES_URL"),
-			SpacesName:      os.Getenv("SPACES_NAME"),
-			SpacesRegion:    os.Getenv("SPACES_REGION"),
+			SpacesAccessKey: 	os.Getenv("SPACES_ACCESS_KEY"),
+			SpacesSecretKey: 	os.Getenv("SPACES_SECRET_KEY"),
+			SpacesEndpoint:  	os.Getenv("SPACES_ENDPOINT"),
+			SpacesUrl:       	os.Getenv("SPACES_URL"),
+			SpacesCdn: 			os.Getenv("SPACES_CDN_URL"),
+			SpacesName:      	os.Getenv("SPACES_NAME"),
+			SpacesRegion:    	os.Getenv("SPACES_REGION"),
 		},
 		CdnEndpoint: os.Getenv("CDN_ENDPOINT"),
 		AccessToken: os.Getenv("ACCESS_TOKEN"),

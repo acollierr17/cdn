@@ -13,6 +13,10 @@ type ImageResponse struct {
 	Success bool   `json:"success"`
 }
 
+type ImageResponseQuery struct {
+	Download	string	`query:"download"`
+}
+
 type ImageDeletedRespone struct {
 	ImageName string `json:"image_name"`
 	Deleted   bool   `json:"deleted"`
