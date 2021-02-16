@@ -214,8 +214,6 @@ func generateAccessTokenRoute(ctx *fiber.Ctx) error {
 
 	verifiedUID := verified.UID
 	accessToken := generateToken()
-	fmt.Printf("Verified UID: %v", verifiedUID)
-	fmt.Printf("Token: %v", accessToken)
 
 	_, updateErr := firebaseFirestore.Collection("tokens").Doc(verifiedUID).Set(firebaseCtx, map[string]interface{}{
 		"uid": verifiedUID,
@@ -226,7 +224,7 @@ func generateAccessTokenRoute(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(fiber.Map{
-		"token": accessToken,
+		"success": true,
 	})
 }
 
