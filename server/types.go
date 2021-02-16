@@ -55,3 +55,7 @@ type ImagesResults struct {
 	Images	[]*ImageResult	`json:"images"`
 	Length	int		        `json:"length"`
 }
+
+type AuthTokenRequest struct {
+	Token	string	`json:"token"`
+}
