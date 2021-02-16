@@ -204,3 +204,24 @@ func generateAccessTokenRoute(ctx *fiber.Ctx) error {
 		"token": accessToken,
 	})
 }
+
+func getImagesRoute(ctx *fiber.Ctx) error  {
+	fmt.Println("Endpoint Hit: getImages")
+
+	s, sessionErr := session.NewSession(s3Config)
+	if sessionErr != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, sessionErr.Error())
+	}
+
+	objects, objectsErr := getFilesFromS3(s)
+	if objectsErr != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, objectsErr.Error())
+	}
+
+	data := ImagesResults{
+		Images: objects,
+		Length: len(objects),
+	}
+
+	return ctx.JSON(data)
+}

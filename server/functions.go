@@ -30,6 +30,7 @@ func handleRequests() {
 	api.Post("/upload", uploadImageRoute)
 	api.Delete("/delete/:id", deleteImageRoute)
 	api.Post("/token", generateAccessTokenRoute)
+	api.Get("/images", getImagesRoute)
 
 	app.Get("/:id", getImageRoute)
 	app.Get("/oembed/:id", getOGEmbedRoute)
@@ -109,6 +110,44 @@ func deleteFileFromS3(s *session.Session, key string) (bool, error) {
 	}
 
 	return true, err
+}
+
+func getFilesFromS3(s *session.Session) ([]*ImageResult, error) {
+	var tokens []*ImageResult
+	var shouldContinue = true
+	var nextToken = ""
+
+	for shouldContinue {
+		objects, err := s3.New(s).ListObjectsV2(&s3.ListObjectsV2Input{
+			Bucket: aws.String(cdnConfig.SpacesConfig.SpacesName),
+			ContinuationToken: aws.String(nextToken),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		var data []*ImageResult
+		for _, obj := range objects.Contents {
+			data = append(data, &ImageResult{
+				CdnUrl: fmt.Sprintf("%v/%v", cdnConfig.CdnEndpoint, *obj.Key),
+				SpacesUrl: fmt.Sprintf("%v/%v", cdnConfig.SpacesConfig.SpacesUrl, *obj.Key),
+				SpacesCdn: fmt.Sprintf("%v/%v", cdnConfig.SpacesConfig.SpacesCdn, *obj.Key),
+				FileName: *obj.Key,
+				LastModified: *obj.LastModified,
+				Size: *obj.Size,
+			})
+		}
+
+		tokens = append(tokens, data...)
+		if *objects.IsTruncated == false {
+			shouldContinue = false
+			nextToken = ""
+		} else {
+			nextToken = *objects.NextContinuationToken
+		}
+	}
+
+	return tokens, nil
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
