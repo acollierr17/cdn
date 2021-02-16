@@ -14,7 +14,7 @@ type ImageResponse struct {
 }
 
 type ImageResponseQuery struct {
-	Download	string	`query:"download"`
+	Download string `query:"download"`
 }
 
 type ImageDeletedRespone struct {
@@ -27,7 +27,7 @@ type SpacesConfig struct {
 	SpacesSecretKey string
 	SpacesEndpoint  string
 	SpacesUrl       string
-	SpacesCdn	    string
+	SpacesCdn       string
 	SpacesName      string
 	SpacesRegion    string
 }
@@ -39,23 +39,19 @@ type Config struct {
 }
 
 type AuthTokenRequest struct {
-	Token	string	`json:"token"`
+	Token string `json:"token"`
 }
 
 type ImageResult struct {
-	CdnUrl			    string		`json:"cdn_url"`
-	SpacesUrl		    string		`json:"spaces_url"`
-	SpacesCdn		    string		`json:"spaces_cdn"`
-	FileName		    string		`json:"file_name"`
-	LastModified		time.Time	`json:"last_modified"`
-	Size			    int64		`json:"size"`
+	CdnUrl       string    `json:"cdn_url"`
+	SpacesUrl    string    `json:"spaces_url"`
+	SpacesCdn    string    `json:"spaces_cdn"`
+	FileName     string    `json:"file_name"`
+	LastModified time.Time `json:"last_modified"`
+	Size         int64     `json:"size"`
 }
 
 type ImagesResults struct {
-	Images	[]*ImageResult	`json:"images"`
-	Length	int		        `json:"length"`
-}
-
-type AuthTokenRequest struct {
-	Token	string	`json:"token"`
+	Images []*ImageResult `json:"images"`
+	Length int            `json:"length"`
 }
