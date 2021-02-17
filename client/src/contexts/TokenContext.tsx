@@ -1,37 +1,9 @@
-import React, { createContext, useReducer, Dispatch, useEffect } from 'react';
-import { TokenActionTypes, TokenActions, tokenReducer } from '../reducers';
-import { useAuth } from './AuthProvider';
+import React, { useReducer, useEffect } from 'react';
+import { TokenActionTypes, tokenReducer } from '../reducers/token';
+import { useAuth } from './AuthContext';
 import { database } from '../firebase';
 
-type InitialStateType = {
-  uid: string;
-  token: string;
-};
-
-const initialState = {
-  uid: '',
-  token: '',
-};
-
-const TokenContext = createContext<{
-  state: InitialStateType;
-  dispatch: Dispatch<TokenActions>;
-}>({
-  state: initialState,
-  dispatch: () => null,
-});
-
-const TokenProvider: React.FC = ({ children }) => {
-  const [state, dispatch] = useReducer(tokenReducer, initialState);
-
-  return (
-    <TokenContext.Provider value={{ state, dispatch }}>
-      {children}
-    </TokenContext.Provider>
-  );
-};
-
-const useToken = (uid: string = '') => {
+export const useToken = (uid: string = '') => {
   const { user: currentUser } = useAuth();
 
   const [state, dispatch] = useReducer(tokenReducer, {
@@ -78,5 +50,3 @@ const useToken = (uid: string = '') => {
 
   return state;
 };
-
-export { useToken, TokenProvider };
