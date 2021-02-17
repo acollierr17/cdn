@@ -15,7 +15,7 @@ import {
   BreadcrumbLink,
 } from '@chakra-ui/react';
 import { Helmet } from 'react-helmet';
-import { useAuth, UserData } from '../contexts/AuthProvider';
+import { useAuth, UserData } from '../contexts/AuthContext';
 import ContainerCentered from '../components/ContainerCentered';
 
 export default function Login() {

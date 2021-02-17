@@ -21,7 +21,7 @@ import {
 import ContainerCentered from '../components/ContainerCentered';
 import { Link as RouterLink, useHistory } from 'react-router-dom';
 import { GoSignOut } from 'react-icons/go';
-import { useAuth } from '../contexts/AuthProvider';
+import { useAuth } from '../contexts/AuthContext';
 import { useToken } from '../contexts/TokenContext';
 import { generateToken } from '../api';
 

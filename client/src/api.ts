@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { ContextProps } from './contexts/AuthProvider';
+import type { ContextProps } from './contexts/AuthContext';
 
 export interface ImageResult {
   cdn_url: string;
