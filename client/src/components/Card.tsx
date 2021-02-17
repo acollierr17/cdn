@@ -17,9 +17,11 @@ import {
   SkeletonText,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { BsChevronDown } from 'react-icons/bs';
+import { BsChevronDown, BsChevronUp } from 'react-icons/bs';
 import type { ImageResult } from '../api';
 import { formatDate, formatFileSize } from '../functions';
+import Link from '../components/Link';
+import DeleteImage from './DeleteImage';
 
 interface CardProps extends ImageResult {
   loading: boolean;
@@ -32,12 +34,15 @@ export default function Card(props: CardProps) {
       <Box borderWidth="1px" borderRadius="lg" overflow="hidden">
         <Box>
           <Center>
-            <Img
-              h="175px"
-              src={props.cdn_url}
-              fallbackSrc={props.spaces_url}
-              alt={props.file_name}
-            />
+            <Skeleton isLoaded={!props.loading}>
+              <Img
+                h="175px"
+                maxW="inherit"
+                src={props.cdn_url}
+                fallbackSrc={props.spaces_url}
+                alt={props.file_name}
+              />
+            </Skeleton>
           </Center>
         </Box>
 
@@ -46,9 +51,23 @@ export default function Card(props: CardProps) {
         <Flex>
           <Box p="2">
             <Skeleton isLoaded={!props.loading}>
-              <Heading size="md">{props.file_name}</Heading>
+              <Heading
+                as={Link}
+                size="md"
+                to={{ pathname: props.cdn_url }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {props.file_name}
+              </Heading>
             </Skeleton>
-            <Text as={SkeletonText} fontSize="xs" isLoaded={!props.loading}>
+            <Text
+              as={SkeletonText}
+              fontSize="xs"
+              isLoaded={!props.loading}
+              h="40px"
+              w="110%"
+            >
               {formatDate(props.last_modified)} &bull;{' '}
               {formatFileSize(props.size)}
             </Text>
@@ -56,35 +75,33 @@ export default function Card(props: CardProps) {
           <Spacer />
           <Box>
             <Menu>
-              <MenuButton
-                as={Button}
-                rightIcon={<BsChevronDown />}
-                m="2"
-                isLoading={props.loading}
-                size="xs"
-              >
-                Actions
-              </MenuButton>
-              <MenuList>
-                <MenuItem>
-                  <RouterLink
-                    to={{ pathname: props.cdn_url }}
-                    target="_blank"
-                    rel="noopener noreferrer"
+              {({ isOpen }) => (
+                <>
+                  <MenuButton
+                    as={Button}
+                    rightIcon={isOpen ? <BsChevronUp /> : <BsChevronDown />}
+                    m="2"
+                    isLoading={props.loading}
+                    size="sm"
                   >
-                    Open in New Tab
-                  </RouterLink>
-                </MenuItem>
-                <MenuItem
-                  as={RouterLink}
-                  to={{ pathname: `${props.cdn_url}?download=true` }}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Download
-                </MenuItem>
-                <MenuItem>Delete</MenuItem>
-              </MenuList>
+                    {isOpen ? 'Close' : 'Open'}
+                  </MenuButton>
+                  <MenuList>
+                    <MenuItem
+                      as={RouterLink}
+                      to={{ pathname: `${props.cdn_url}?download=true` }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Download
+                    </MenuItem>
+                    <DeleteImage
+                      fileName={props.file_name}
+                      token={props.token}
+                    />
+                  </MenuList>
+                </>
+              )}
             </Menu>
           </Box>
         </Flex>

@@ -7,7 +7,6 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   Heading,
-  GridItem,
   Box,
   Flex,
   Spacer,
@@ -16,8 +15,8 @@ import { Helmet } from 'react-helmet';
 import { useHistory, Link as RouterLink } from 'react-router-dom';
 import { GoSignOut, GoGear } from 'react-icons/go';
 import Card from '../components/Card';
-import { useAuth } from '../contexts/AuthProvider';
-import type { ImageResults } from '../api';
+import { useAuth } from '../contexts/AuthContext';
+import type { ImageResult, ImageResults } from '../api';
 import { getAllImages } from '../api';
 import { useToken } from '../contexts/TokenContext';
 
@@ -28,9 +27,18 @@ export default function Dashboard() {
   const [token, setToken] = useState(tokenState.token);
   const [loading, setLoading] = useState(true);
 
+  const initialCardState: ImageResult = {
+    cdn_url: '',
+    spaces_url: '',
+    spaces_cdn: '',
+    file_name: '',
+    last_modified: '',
+    size: 0,
+  };
+
   const [images, setImages] = useState<ImageResults>({
-    images: [],
-    length: 0,
+    images: new Array(9).fill(initialCardState),
+    length: 9,
   });
 
   const handleClick = () => {
@@ -69,16 +77,16 @@ export default function Dashboard() {
       </Helmet>
 
       <Box>
-        <Flex alignItems="baseline" mx="25px">
+        <Flex alignItems="baseline">
           <Breadcrumb>
-            <BreadcrumbItem as={Heading} pb={4} isCurrentPage>
+            <BreadcrumbItem as={Heading} isCurrentPage>
               <BreadcrumbLink as={RouterLink} to="/">
                 Dashboard
               </BreadcrumbLink>
             </BreadcrumbItem>
           </Breadcrumb>
           <Spacer />
-          <Stack spacing={4} mt="4" direction={['column', 'row']}>
+          <Stack spacing={4} direction={['column', 'row']}>
             <Button
               leftIcon={<GoSignOut />}
               colorScheme="orange"
@@ -93,19 +101,17 @@ export default function Dashboard() {
             </Button>
           </Stack>
         </Flex>
-      </Box>
 
-      <Flex flexDirection="row" flexWrap="wrap">
-        {images.images.slice(0, 7).map((image, key) => {
-          return (
-            <>
-              <GridItem m={5} w="250px">
+        <Flex direction="row" wrap="wrap" justify="center">
+          {images.images.map((image, key) => {
+            return (
+              <Box m={5} w="250px">
                 <Card key={key} loading={loading} token={token} {...image} />
-              </GridItem>
-            </>
-          );
-        })}
-      </Flex>
+              </Box>
+            );
+          })}
+        </Flex>
+      </Box>
     </>
   );
 }
