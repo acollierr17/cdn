@@ -16,6 +16,7 @@ import {
   BreadcrumbLink,
   Flex,
   Spacer,
+  Textarea,
   useClipboard,
 } from '@chakra-ui/react';
 import ContainerCentered from '../components/ContainerCentered';
@@ -24,6 +25,7 @@ import { GoSignOut } from 'react-icons/go';
 import { useAuth } from '../contexts/AuthContext';
 import { useToken } from '../contexts/TokenContext';
 import { generateToken } from '../api';
+import ShareXModal from '../components/ShareXModal';
 
 export default function Profile() {
   const auth = useAuth();
@@ -122,6 +124,22 @@ export default function Profile() {
                   <Button h="1.75rem" size="sm" onClick={toggleTokenVisibility}>
                     {showToken ? 'Hide' : 'Show'}
                   </Button>
+                </InputRightElement>
+              </InputGroup>
+            </FormControl>
+
+            <FormControl id="sharex-config" pt={4}>
+              <FormLabel>ShareX Config</FormLabel>
+              <InputGroup size="md">
+                <Text
+                  as={Input}
+                  pr="4.5rem"
+                  type="text"
+                  placeholder="Click 'Open' to view/download your ShareX config file."
+                  isDisabled
+                />
+                <InputRightElement width="4.5rem">
+                  <ShareXModal />
                 </InputRightElement>
               </InputGroup>
             </FormControl>
