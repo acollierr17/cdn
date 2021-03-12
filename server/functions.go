@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/websocket/v2"
 	"log"
 	"math/rand"
 	"mime/multipart"
@@ -24,6 +25,15 @@ func handleRequests() {
 		AllowHeaders: "Origin, Content-Type, Accept, Access-Token, User-Agent",
 	}))
 
+	app.Use("/ws", func(ctx *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(ctx) {
+			ctx.Locals("allowed", true)
+			return ctx.Next()
+		}
+
+		return fiber.ErrUpgradeRequired
+	})
+
 	app.Static("/admin", "dist")
 
 	api := app.Group("/api").Use(accessTokenMiddleware)
@@ -34,10 +44,11 @@ func handleRequests() {
 
 	app.Get("/:id", getImageRoute)
 	app.Get("/oembed/:id", getOGEmbedRoute)
+	app.Get("/ws/:id", websocket.New(websocketTest))
 	app.Get("/", homePageRoute)
 
 	admin := app.Group("/admin")
-	admin.Get("/admin/*", func(ctx *fiber.Ctx) error {
+	admin.Get("*", func(ctx *fiber.Ctx) error {
 		return ctx.SendFile("./dist/index.html")
 	})
 

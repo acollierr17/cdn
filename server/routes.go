@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -247,4 +249,31 @@ func getImagesRoute(ctx *fiber.Ctx) error  {
 	}
 
 	return ctx.JSON(data)
+}
+
+func websocketTest(ctx *websocket.Conn) {
+	// ctx.Locals is added to the *websocket.Conn
+	log.Println(ctx.Locals("allowed"))  // true
+	log.Println(ctx.Params("id"))       // 123
+	log.Println(ctx.Query("v"))         // 1.0
+	log.Println(ctx.Cookies("session")) // ""
+
+	// websocket.Conn bindings https://pkg.go.dev/github.com/fasthttp/websocket?tab=doc#pkg-index
+	var (
+		mt  int
+		msg []byte
+		err error
+	)
+	for {
+		if mt, msg, err = ctx.ReadMessage(); err != nil {
+			log.Println("read:", err)
+			break
+		}
+		log.Printf("recv: %s", msg)
+
+		if err = ctx.WriteMessage(mt, msg); err != nil {
+			log.Println("write:", err)
+			break
+		}
+	}
 }

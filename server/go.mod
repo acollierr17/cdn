@@ -7,6 +7,7 @@ require (
 	firebase.google.com/go/v4 v4.2.0
 	github.com/aws/aws-sdk-go v1.37.9
 	github.com/gofiber/fiber/v2 v2.5.0
+	github.com/gofiber/websocket/v2 v2.0.2
 	github.com/joho/godotenv v1.3.0
 	google.golang.org/api v0.17.0
 )
